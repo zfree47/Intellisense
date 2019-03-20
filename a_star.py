@@ -13,6 +13,23 @@ class Node():
         return self.position == other.position
 
 
+def main():
+
+    board = [[None, None, None, 0, 0, 0, 0],
+            [None, None, 0, 0, 0, 0, 0],
+            [None, 0, 0, 0, 0, 0, 0],
+            [0, 0, 0, 0, 0, 0, 0],
+            [0, 0, 0, 0, 0, 0, None],
+            [0, 0, 0, 0, 0, None, None],
+            [0, 0, 0, 0, None, None, None]]
+
+    start = (0, 3)
+    end = (2, 5)
+
+    path = astar(board, start, end)
+    print(path)
+
+
 def astar(board, start, end):
     """Returns a list of tuples as a path from the given start to the given end in the given maze"""
 
@@ -112,23 +129,6 @@ def astar(board, start, end):
 
             # Add the child to the open list
             open_list.append(child)
-
-
-def main():
-
-    board = [[None, None, None, 0, 0, 0, 0],
-            [None, None, 0, 0, 0, 0, 0],
-            [None, 0, 0, 0, 0, 0, 0],
-            [0, 0, 0, 0, 0, 0, 0],
-            [0, 0, 0, 0, 0, 0, None],
-            [0, 0, 0, 0, 0, None, None],
-            [0, 0, 0, 0, None, None, None]]
-
-    start = (0, 3)
-    end = (2, 5)
-
-    path = astar(board, start, end)
-    print(path)
 
 
 if __name__ == '__main__':
