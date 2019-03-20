@@ -1,5 +1,3 @@
-from copy import deepcopy
-
 class Node():
     """A node class for A* Pathfinding"""
 
@@ -15,14 +13,21 @@ class Node():
         return self.position == other.position
 
 
-def astar(maze, start, end):
+def astar(board, start, end):
     """Returns a list of tuples as a path from the given start to the given end in the given maze"""
 
     # Create start and end node
-    start_node = Node(None, start)
-    start_node.g = start_node.h = start_node.f = 0
-    end_node = Node(None, end)
-    end_node.g = end_node.h = end_node.f = 0
+    if board[start[0]][start[1]] is not None:
+        start_node = Node(None, start)
+        start_node.g = start_node.h = start_node.f = 0
+    else:
+        return "Start position doesn't exist."
+
+    if board[end[0]][end[1]] is not None:
+        end_node = Node(None, end)
+        end_node.g = end_node.h = end_node.f = 0
+    else:
+        return "End position doesn't exist."
 
     # Initialize both open and closed list
     open_list = []
@@ -37,7 +42,7 @@ def astar(maze, start, end):
         # Get the current node
         current_node = open_list[0]
         current_index = 0
-        for index, item in enumerate(open_list):
+        for index, item in enumerate(open_list):  # Could use a priority queue here
             if item.f < current_node.f:
                 current_node = item
                 current_index = index
@@ -53,25 +58,34 @@ def astar(maze, start, end):
             while current is not None:
                 path.append(current.position)
                 current = current.parent
-            return path[::-1] # Return reversed path
+            return path[::-1]  # Return reversed path
 
         # Generate children
         children = []
         # change
-        for new_position in [(0, -1), (0, 1), (-1, 0), (1, 0), (-1, -1), (-1, 1), (1, -1), (1, 1)]: # Adjacent squares
+        for new_position in [(-1, 0), (-1, 1), (0, -1), (0, 1), (1, -1), (1, 0)]:  # Adjacent squares
 
             # Get node position
             node_position = (current_node.position[0] + new_position[0], current_node.position[1] + new_position[1])
 
-            # Make sure within range
-            if node_position[0] > (len(maze) - 1) or node_position[0] < 0 or node_position[1] > (len(maze[len(maze)-1]) -1) or node_position[1] < 0:
+            board_max_dim = len(board) - 1
+            r = node_position[0]  # row
+            q = node_position[1]  # column
+
+            # If r is > # of board rows, move on to next child
+            if r > board_max_dim or r < 0 or \
+                    q > (len(board[board_max_dim]) - 1) or q < 0:  # if q is > # of board columns, move on
                 continue
 
-            # Make sure walkable terrain
-            if maze[node_position[0]][node_position[1]] != 0:
+            # Take into account hexagonal grid offset
+            if board[r][q] is None:
                 continue
 
-            # Create new node
+            # Make sure it isn't a blocked position
+            if board[r][q] != 0:
+                continue
+
+            # Create new node with parent and position
             new_node = Node(current_node, node_position)
 
             # Append
@@ -80,17 +94,18 @@ def astar(maze, start, end):
         # Loop through children
         for child in children:
 
-            # Child is on the closed list
+            # Don't change g, h, f values if it's a closed position
             for closed_child in closed_list:
                 if child == closed_child:
                     continue
 
-            # Create the f, g, and h values
+            # Create the f, g, and h values.
             child.g = current_node.g + 1
-            child.h = ((child.position[0] - end_node.position[0]) ** 2) + ((child.position[1] - end_node.position[1]) ** 2)
+            child.h = ((child.position[0] - end_node.position[0]) ** 2) + \
+                      ((child.position[1] - end_node.position[1]) ** 2)  # current heuristic: pythagoras
             child.f = child.g + child.h
 
-            # Child is already in the open list
+            # Don't add to open list if it's already in it with a smaller true cost value
             for open_node in open_list:
                 if child == open_node and child.g > open_node.g:
                     continue
@@ -101,21 +116,18 @@ def astar(maze, start, end):
 
 def main():
 
-    maze = [[0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
-            [0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
-            [0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
-            [0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
-            [0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
-            [0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
-            [0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
-            [0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
-            [0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
-            [0, 0, 0, 0, 0, 0, 0, 0, 0, 0]]
+    board = [[None, None, None, 0, 0, 0, 0],
+            [None, None, 0, 0, 0, 0, 0],
+            [None, 0, 0, 0, 0, 0, 0],
+            [0, 0, 0, 0, 0, 0, 0],
+            [0, 0, 0, 0, 0, 0, None],
+            [0, 0, 0, 0, 0, None, None],
+            [0, 0, 0, 0, None, None, None]]
 
-    start = (0, 0)
-    end = (5, 1)
+    start = (0, 3)
+    end = (2, 5)
 
-    path = astar(maze, start, end)
+    path = astar(board, start, end)
     print(path)
 
 
