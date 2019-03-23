@@ -23,15 +23,29 @@ def main():
             [0, 0, 0, 0, 0, None, None],
             [0, 0, 0, 0, None, None, None]]
 
-    start = (0, 3)
-    end = (2, 5)
+    start = (0, -3)
+    end = (3, 0)
 
     path = astar(board, start, end)
+    print(start, end)
     print(path)
 
 
 def astar(board, start, end):
     """Returns a list of tuples as a path from the given start to the given end in the given maze"""
+
+    # Typecast to list to make coordinates compatible
+    start = list(start)
+    end = list(end)
+    start = start[::-1]
+    end = end[::-1]
+
+    offset = 3
+    start[0] += offset
+    start[1] += offset
+    end[0] += offset
+    end[1] += offset
+
 
     # Create start and end node
     if board[start[0]][start[1]] is not None:
@@ -73,7 +87,12 @@ def astar(board, start, end):
             path = []
             current = current_node
             while current is not None:
-                path.append(current.position)
+
+                # Convert to a compatible output
+                current.position[0] -= offset
+                current.position[1] -= offset
+                path.append((current.position[1], current.position[0]))
+
                 current = current.parent
             return path[::-1]  # Return reversed path
 
@@ -83,7 +102,7 @@ def astar(board, start, end):
         for new_position in [(-1, 0), (-1, 1), (0, -1), (0, 1), (1, -1), (1, 0)]:  # Adjacent squares
 
             # Get node position
-            node_position = (current_node.position[0] + new_position[0], current_node.position[1] + new_position[1])
+            node_position = [current_node.position[0] + new_position[0], current_node.position[1] + new_position[1]]
 
             board_max_dim = len(board) - 1
             r = node_position[0]  # row
