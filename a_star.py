@@ -17,45 +17,40 @@ def main():
 
     board = [[None, None, None, 0, 0, 0, 0],
             [None, None, 0, 0, 0, 0, 0],
-            [None, 0, 0, 0, 0, 0, 0],
-            [0, 0, 0, 0, 0, 0, 0],
-            [0, 0, 0, 0, 0, 0, None],
-            [0, 0, 0, 0, 0, None, None],
-            [0, 0, 0, 0, None, None, None]]
+            [None, 0, 0, 0, 0, 1, 0],
+            [0, 0, 0, 0, 1, 0, 0],
+            [0, 0, 0, 1, 0, 0, None],
+            [0, 0, 1, 0, 0, None, None],
+            [0, 1, 0, 0, None, None, None]]
 
-    start = (0, -3)
-    end = (3, 0)
+    # (q/column, r/row)
+    start = (0, -1)
+    end = (0, 3)
+    print("start: {}, {}, end: {}, {}".format(*start, *end))
 
-    path = astar(board, start, end)
-    print(start, end)
+    path = a_star(board, start, end)
     print(path)
 
 
-def astar(board, start, end):
+def a_star(board, start, end):
     """Returns a list of tuples as a path from the given start to the given end in the given maze"""
 
-    # Typecast to list to make coordinates compatible
-    start = list(start)
-    end = list(end)
-    start = start[::-1]
-    end = end[::-1]
-
+    # Convert to grid coordinates
     offset = 3
-    start[0] += offset
-    start[1] += offset
-    end[0] += offset
-    end[1] += offset
+    start_q = start[0] + offset
+    start_r = start[1] + offset
+    end_q = end[0] + offset
+    end_r = end[1] + offset
 
-
-    # Create start and end node
-    if board[start[0]][start[1]] is not None:
-        start_node = Node(None, start)
+    # Create start and end node (row is accessed first in 2D array)
+    if board[start_r][start_q] is not None:
+        start_node = Node(None, [start_r, start_q])
         start_node.g = start_node.h = start_node.f = 0
     else:
         return "Start position doesn't exist."
 
-    if board[end[0]][end[1]] is not None:
-        end_node = Node(None, end)
+    if board[end_r][end_q] is not None:
+        end_node = Node(None, [end_r, end_q])
         end_node.g = end_node.h = end_node.f = 0
     else:
         return "End position doesn't exist."
@@ -88,44 +83,17 @@ def astar(board, start, end):
             current = current_node
             while current is not None:
 
-                # Convert to a compatible output
-                current.position[0] -= offset
-                current.position[1] -= offset
-                path.append((current.position[1], current.position[0]))
+                # Convert to hex coordinates
+                output_r = current.position[0] - offset
+                output_q = current.position[1] - offset
+                output = [output_q, output_r]
+                path.append(output)
 
                 current = current.parent
             return path[::-1]  # Return reversed path
 
         # Generate children
-        children = []
-        # change
-        for new_position in [(-1, 0), (-1, 1), (0, -1), (0, 1), (1, -1), (1, 0)]:  # Adjacent squares
-
-            # Get node position
-            node_position = [current_node.position[0] + new_position[0], current_node.position[1] + new_position[1]]
-
-            board_max_dim = len(board) - 1
-            r = node_position[0]  # row
-            q = node_position[1]  # column
-
-            # If r is > # of board rows, move on to next child
-            if r > board_max_dim or r < 0 or \
-                    q > (len(board[board_max_dim]) - 1) or q < 0:  # if q is > # of board columns, move on
-                continue
-
-            # Take into account hexagonal grid offset
-            if board[r][q] is None:
-                continue
-
-            # Make sure it isn't a blocked position
-            if board[r][q] != 0:
-                continue
-
-            # Create new node with parent and position
-            new_node = Node(current_node, node_position)
-
-            # Append
-            children.append(new_node)
+        children = generate_children(board, current_node)
 
         # Loop through children
         for child in children:
@@ -137,8 +105,9 @@ def astar(board, start, end):
 
             # Create the f, g, and h values.
             child.g = current_node.g + 1
+            # current heuristic: pythagoras
             child.h = ((child.position[0] - end_node.position[0]) ** 2) + \
-                      ((child.position[1] - end_node.position[1]) ** 2)  # current heuristic: pythagoras
+                      ((child.position[1] - end_node.position[1]) ** 2)
             child.f = child.g + child.h
 
             # Don't add to open list if it's already in it with a smaller true cost value
@@ -149,6 +118,43 @@ def astar(board, start, end):
             # Add the child to the open list
             open_list.append(child)
 
+
+def generate_children(board, current_node):
+
+    children = []
+
+    for new_position in [(-1, 0), (-1, 1), (0, -1), (0, 1), (1, -1), (1, 0)]:  # Adjacent squares
+        # Get node position
+        node_position = [current_node.position[0] + new_position[0], current_node.position[1] + new_position[1]]
+
+        board_max_dim = len(board) - 1
+        r = node_position[0]  # row
+        q = node_position[1]  # column
+
+        # If r or q is off the board, move on to the next position
+        if r > board_max_dim or r < 0 or \
+                q > (len(board[board_max_dim]) - 1) or q < 0 or board[r][q] is None:
+            continue
+
+        # Check if it's a blocked position
+        if board[r][q] != 0:
+            # Check if the following position is walkable
+            jump_position = [r + new_position[0], q + new_position[1]]
+            jump_r = jump_position[0]
+            jump_q = jump_position[1]
+            if board[jump_r][jump_q] == 0:
+                # If it is, add it to the children (g only increments once)
+                node_position = jump_position
+            else:
+                continue
+
+        # Create new node with parent and position
+        new_node = Node(current_node, node_position)
+
+        # Append
+        children.append(new_node)
+
+    return children
 
 if __name__ == '__main__':
     main()
